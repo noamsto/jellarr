@@ -6,10 +6,15 @@ import type {
   UserConfigList,
   UserPolicyConfig,
 } from "../types/config/users";
-import type { UserDtoSchema, UserPolicySchema } from "../types/schema/users";
+import type {
+  UserDtoSchema,
+  UserPolicySchema,
+  UserConfigurationSchema,
+} from "../types/schema/users";
 import {
   mapUserConfigToCreateSchema,
   mapUserPolicyConfigToSchema,
+  mapUserConfigToConfiguration,
 } from "../mappers/users";
 import { applyChangeset, diff, type IChange } from "json-diff-ts";
 
@@ -95,5 +100,56 @@ export async function applyUserPolicies(
 
   for (const [userId, policy] of policies) {
     await client.updateUserPolicy(userId, policy);
+  }
+}
+
+export function calculateUserConfigurationsDiff(
+  current: UserDtoSchema[],
+  desired: UserConfigList,
+): Map<string, UserConfigurationSchema> | undefined {
+  if (desired.length === 0) return undefined;
+
+  const userConfigurationsToUpdate: Map<string, UserConfigurationSchema> =
+    new Map();
+
+  desired.forEach((userConfig: UserConfig) => {
+    if (
+      typeof userConfig.subtitleLanguagePreference === "undefined" &&
+      typeof userConfig.subtitleMode === "undefined"
+    ) {
+      return;
+    }
+
+    const currentUserDtoSchema: UserDtoSchema | undefined = current.find(
+      (curr: UserDtoSchema) => curr.Name === userConfig.name,
+    );
+
+    if (currentUserDtoSchema?.Id) {
+      const currentConfiguration: UserConfigurationSchema =
+        currentUserDtoSchema.Configuration ?? {};
+      const next: UserConfigurationSchema = {
+        ...currentConfiguration,
+        ...mapUserConfigToConfiguration(userConfig),
+      };
+
+      if (JSON.stringify(next) !== JSON.stringify(currentConfiguration)) {
+        userConfigurationsToUpdate.set(currentUserDtoSchema.Id, next);
+      }
+    }
+  });
+
+  return userConfigurationsToUpdate.size > 0
+    ? userConfigurationsToUpdate
+    : undefined;
+}
+
+export async function applyUserConfigurations(
+  client: JellyfinClient,
+  configurations: Map<string, UserConfigurationSchema> | undefined,
+): Promise<void> {
+  if (!configurations) return;
+
+  for (const [userId, configuration] of configurations) {
+    await client.updateUserConfiguration(userId, configuration);
   }
 }

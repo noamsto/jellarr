@@ -39,6 +39,30 @@
         default = null;
         description = "User policy configuration.";
       };
+      subtitleLanguagePreference = mkOption {
+        type = nullOr types.str;
+        default = null;
+        description = ''
+          Preferred subtitle language as an ISO 639-2 three-letter code, for
+          example "heb".
+        '';
+      };
+      subtitleMode = mkOption {
+        type = nullOr (types.enum [
+          "Default"
+          "Always"
+          "OnlyForced"
+          "None"
+          "Smart"
+        ]);
+        default = null;
+        description = ''
+          When subtitles are played. "Always" loads the preferred subtitle
+          language whenever it is available, "Smart" only when the audio track
+          is in another language, "Default" only when the track is flagged
+          external, default or forced.
+        '';
+      };
     };
   };
 
@@ -63,7 +87,9 @@
         // {inherit (user) name;}
         // optionalAttrs (user.password != null) {inherit (user) password;}
         // optionalAttrs (user.passwordFile != null) {inherit (user) passwordFile;}
-        // optionalAttrs (user.policy != null) {policy = mkUserPolicyConfig user.policy;})
+        // optionalAttrs (user.policy != null) {policy = mkUserPolicyConfig user.policy;}
+        // optionalAttrs (user ? subtitleLanguagePreference && user.subtitleLanguagePreference != null) {inherit (user) subtitleLanguagePreference;}
+        // optionalAttrs (user ? subtitleMode && user.subtitleMode != null) {inherit (user) subtitleMode;})
     cfg;
 in {
   inherit usersConfigType mkUsersConfig;

@@ -10,6 +10,7 @@ import type {
   UserDtoSchema,
   CreateUserByNameSchema,
   UserPolicySchema,
+  UserConfigurationSchema,
 } from "../types/schema/users";
 import type {
   JellyfinClient,
@@ -24,6 +25,7 @@ import type {
   GetUsersResponse,
   PostNewUserResponse,
   PostUserPolicyResponse,
+  PostUserConfigurationResponse,
   PostStartupCompleteResponse,
   GetPluginsResponse,
   PostInstallPackageResponse,
@@ -230,6 +232,26 @@ export function createJellyfinClient(
       if (!res.response.ok) {
         throw new Error(
           `POST /Users/{userId}/Policy failed: ${res.response.status.toString()}`,
+        );
+      }
+    },
+
+    async updateUserConfiguration(
+      userId: string,
+      body: UserConfigurationSchema,
+    ): Promise<void> {
+      const res: PostUserConfigurationResponse = await client.POST(
+        "/Users/Configuration",
+        {
+          params: { query: { userId } },
+          body,
+          headers: { "content-type": "application/json" },
+        },
+      );
+
+      if (!res.response.ok) {
+        throw new Error(
+          `POST /Users/Configuration failed: ${res.response.status.toString()}`,
         );
       }
     },

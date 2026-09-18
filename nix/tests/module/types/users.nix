@@ -248,6 +248,60 @@ in [
       }
     ])
 
+  (assertEq "subtitleLanguagePreference only" (mkUsersConfig [
+      {
+        name = "user";
+        password = "pass";
+        passwordFile = null;
+        policy = null;
+        subtitleLanguagePreference = "heb";
+      }
+    ]) [
+      {
+        name = "user";
+        password = "pass";
+        subtitleLanguagePreference = "heb";
+      }
+    ])
+
+  (assertEq "subtitleMode only" (mkUsersConfig [
+      {
+        name = "user";
+        password = "pass";
+        passwordFile = null;
+        policy = null;
+        subtitleMode = "Always";
+      }
+    ]) [
+      {
+        name = "user";
+        password = "pass";
+        subtitleMode = "Always";
+      }
+    ])
+
+  (assertEq "subtitle preferences alongside policy" (mkUsersConfig [
+      {
+        name = "user";
+        password = "pass";
+        passwordFile = null;
+        policy = {
+          isAdministrator = true;
+          loginAttemptsBeforeLockout = null;
+        };
+        subtitleLanguagePreference = "heb";
+        subtitleMode = "Smart";
+      }
+    ]) [
+      {
+        name = "user";
+        password = "pass";
+        policy = {isAdministrator = true;};
+        subtitleLanguagePreference = "heb";
+        subtitleMode = "Smart";
+      }
+    ])
+
   (assertThrows "reject list with invalid policy" (mkUsersConfig [
     {
       name = "valid-user";

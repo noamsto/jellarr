@@ -15,12 +15,26 @@ export const UserConfigType: z.ZodObject<{
   password: z.ZodOptional<z.ZodString>;
   passwordFile: z.ZodOptional<z.ZodString>;
   policy: z.ZodOptional<typeof UserPolicyConfigType>;
+  subtitleLanguagePreference: z.ZodOptional<z.ZodString>;
+  subtitleMode: z.ZodOptional<
+    z.ZodEnum<{
+      Default: "Default";
+      Always: "Always";
+      OnlyForced: "OnlyForced";
+      None: "None";
+      Smart: "Smart";
+    }>
+  >;
 }> = z
   .object({
     name: z.string().min(1, "User name is required"),
     password: z.string().optional(),
     passwordFile: z.string().optional(),
     policy: UserPolicyConfigType.optional(),
+    subtitleLanguagePreference: z.string().min(1).optional(),
+    subtitleMode: z
+      .enum(["Default", "Always", "OnlyForced", "None", "Smart"])
+      .optional(),
   })
   .strict()
   .refine(

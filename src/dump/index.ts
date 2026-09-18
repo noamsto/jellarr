@@ -134,6 +134,9 @@ export async function runDump(baseUrl: string): Promise<void> {
         isAdministrator: user.Policy?.IsAdministrator,
         loginAttemptsBeforeLockout: user.Policy?.LoginAttemptsBeforeLockout,
       },
+      subtitleLanguagePreference:
+        user.Configuration?.SubtitleLanguagePreference,
+      subtitleMode: user.Configuration?.SubtitleMode,
     })),
 
     plugins: pluginsWithConfig,

@@ -3,6 +3,7 @@ import { type UserConfig, type UserPolicyConfig } from "../types/config/users";
 import {
   type CreateUserByNameSchema,
   type UserPolicySchema,
+  type UserConfigurationSchema,
 } from "../types/schema/users";
 
 export function getPlaintextPassword(config: UserConfig): string | undefined {
@@ -38,6 +39,22 @@ export function mapUserPolicyConfigToSchema(
 
   if (typeof desired.loginAttemptsBeforeLockout !== "undefined") {
     out.LoginAttemptsBeforeLockout = desired.loginAttemptsBeforeLockout;
+  }
+
+  return out;
+}
+
+export function mapUserConfigToConfiguration(
+  desired: UserConfig,
+): Partial<UserConfigurationSchema> {
+  const out: Partial<UserConfigurationSchema> = {};
+
+  if (typeof desired.subtitleLanguagePreference !== "undefined") {
+    out.SubtitleLanguagePreference = desired.subtitleLanguagePreference;
+  }
+
+  if (typeof desired.subtitleMode !== "undefined") {
+    out.SubtitleMode = desired.subtitleMode;
   }
 
   return out;

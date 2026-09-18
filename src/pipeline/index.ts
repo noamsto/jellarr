@@ -13,14 +13,20 @@ import {
 import {
   calculateNewUsersDiff,
   calculateUserPoliciesDiff,
+  calculateUserConfigurationsDiff,
   applyUserPolicies,
+  applyUserConfigurations,
   createNewUsers,
 } from "../apply/users";
 import type { VirtualFolderInfoSchema } from "../types/schema/library";
 import { type ServerConfigurationSchema } from "../types/schema/system";
 import { type EncodingOptionsSchema } from "../types/schema/encoding-options";
 import { type BrandingOptionsDtoSchema } from "../types/schema/branding-options";
-import type { UserDtoSchema, UserPolicySchema } from "../types/schema/users";
+import type {
+  UserDtoSchema,
+  UserPolicySchema,
+  UserConfigurationSchema,
+} from "../types/schema/users";
 import type { UserConfig } from "../types/config/users";
 import { createJellyfinClient } from "../api/jellyfin_client";
 import { type JellyfinClient } from "../api/jellyfin.types";
@@ -150,6 +156,18 @@ export async function runPipeline(path: string): Promise<void> {
       console.log("✓ updated user policies");
     } else {
       console.log("✓ user policies already up to date");
+    }
+
+    const userConfigurationsToUpdate:
+      | Map<string, UserConfigurationSchema>
+      | undefined = calculateUserConfigurationsDiff(currentUsers, cfg.users);
+
+    if (userConfigurationsToUpdate) {
+      console.log("→ updating user configurations");
+      await applyUserConfigurations(jellyfinClient, userConfigurationsToUpdate);
+      console.log("✓ updated user configurations");
+    } else {
+      console.log("✓ user configurations already up to date");
     }
   }
 

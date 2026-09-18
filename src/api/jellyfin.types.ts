@@ -10,6 +10,7 @@ import type {
   UserDtoSchema,
   CreateUserByNameSchema,
   UserPolicySchema,
+  UserConfigurationSchema,
 } from "../types/schema/users";
 import {
   type PluginInfoSchema,
@@ -34,6 +35,7 @@ export type PostBrandingConfigurationResponse = ApiResponse<void>;
 export type GetUsersResponse = ApiResponse<UserDtoSchema[]>;
 export type PostNewUserResponse = ApiResponse<UserDtoSchema>;
 export type PostUserPolicyResponse = ApiResponse<void>;
+export type PostUserConfigurationResponse = ApiResponse<void>;
 export type PostStartupCompleteResponse = ApiResponse<void>;
 export type GetPluginsResponse = ApiResponse<PluginInfoSchema[]>;
 export type PostInstallPackageResponse = ApiResponse<void>;
@@ -63,6 +65,10 @@ export interface JellyfinClient {
   getUsers(): Promise<UserDtoSchema[]>;
   createUser(body: CreateUserByNameSchema): Promise<void>;
   updateUserPolicy(userId: string, body: UserPolicySchema): Promise<void>;
+  updateUserConfiguration(
+    userId: string,
+    body: UserConfigurationSchema,
+  ): Promise<void>;
   completeStartupWizard(): Promise<void>;
   getPlugins(): Promise<PluginInfoSchema[]>;
   installPackage(name: string): Promise<void>;

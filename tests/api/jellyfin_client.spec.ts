@@ -21,6 +21,7 @@ import type {
   UserDtoSchema,
   CreateUserByNameSchema,
   UserPolicySchema,
+  UserConfigurationSchema,
 } from "../../src/types/schema/users";
 import type {
   PluginInfoSchema,
@@ -702,6 +703,57 @@ describe("api/jf Users façade", () => {
     await expect(
       jellyfinClient.updateUserPolicy("user-id-123", policyBody),
     ).rejects.toThrow(/POST \/Users\/\{userId\}\/Policy failed/i);
+  });
+
+  it("when POST /Users/Configuration succeeds then it sends the user id and JSON body and resolves", async (): Promise<void> => {
+    // Arrange
+    mockFetchNoContent(204);
+
+    // Act
+    const jellyfinClient: JellyfinClient = createJellyfinClient(
+      baseUrl,
+      apiKey,
+    );
+    const configurationBody: UserConfigurationSchema = {
+      SubtitleLanguagePreference: "heb",
+      SubtitleMode: "Always",
+    } as UserConfigurationSchema;
+    await jellyfinClient.updateUserConfiguration(
+      "user-id-123",
+      configurationBody,
+    );
+
+    // Assert
+    const req: Request = getLastRequest();
+    expect(req.method).toBe("POST");
+    expect(req.url).toMatch(/\/Users\/Configuration\?userId=user-id-123/);
+    expect(req.headers.get("content-type")).toBe("application/json");
+    expect(req.headers.get("Authorization")).toContain(`Token="${apiKey}"`);
+
+    const bodyText: string = await req.text();
+    expect(bodyText).toContain("SubtitleLanguagePreference");
+    expect(bodyText).toContain("SubtitleMode");
+  });
+
+  it("when POST /Users/Configuration fails then it throws an error with status", async (): Promise<void> => {
+    // Arrange
+    fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("boom", { status: 400 }));
+
+    // Act
+    const jellyfinClient: JellyfinClient = createJellyfinClient(
+      baseUrl,
+      apiKey,
+    );
+    const configurationBody: UserConfigurationSchema = {
+      SubtitleMode: "Smart",
+    } as UserConfigurationSchema;
+
+    // Assert
+    await expect(
+      jellyfinClient.updateUserConfiguration("user-id-123", configurationBody),
+    ).rejects.toThrow(/POST \/Users\/Configuration failed/i);
   });
 });
 
