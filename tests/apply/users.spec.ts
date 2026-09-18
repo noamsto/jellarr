@@ -3,13 +3,16 @@ import {
   calculateNewUsersDiff,
   createNewUsers,
   calculateUserPoliciesDiff,
+  calculateUserConfigurationsDiff,
   applyUserPolicies,
+  applyUserConfigurations,
 } from "../../src/apply/users";
 import type { JellyfinClient } from "../../src/api/jellyfin.types";
 import type { UserConfig, UserConfigList } from "../../src/types/config/users";
 import type {
   UserDtoSchema,
   UserPolicySchema,
+  UserConfigurationSchema,
 } from "../../src/types/schema/users";
 vi.mock("../../src/lib/logger", () => ({
   logger: {
@@ -39,6 +42,16 @@ vi.mock("../../src/mappers/users", () => ({
       return result;
     },
   ),
+  mapUserConfigToConfiguration: vi.fn((config: UserConfig) => {
+    const result: Record<string, string> = {};
+    if (config.subtitleLanguagePreference !== undefined) {
+      result.SubtitleLanguagePreference = config.subtitleLanguagePreference;
+    }
+    if (config.subtitleMode !== undefined) {
+      result.SubtitleMode = config.subtitleMode;
+    }
+    return result;
+  }),
 }));
 
 describe("calculateNewUsersDiff", () => {
@@ -822,5 +835,274 @@ describe("applyUserPolicies", () => {
 
     // Assert
     expect(updatePolicySpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("calculateUserConfigurationsDiff", () => {
+  let currentUsers: UserDtoSchema[];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    currentUsers = [
+      {
+        Name: "existing-user",
+        Id: "user-1-id",
+        ServerId: "server-id",
+        Configuration: {
+          DisplayMissingEpisodes: false,
+          RememberSubtitleSelections: true,
+        } as UserConfigurationSchema,
+      } as UserDtoSchema,
+      {
+        Name: "admin-user",
+        Id: "user-2-id",
+        ServerId: "server-id",
+        Configuration: {
+          SubtitleLanguagePreference: "eng",
+        } as UserConfigurationSchema,
+      } as UserDtoSchema,
+    ];
+  });
+
+  it("should return undefined when no users desired", () => {
+    // Arrange
+    const config: UserConfigList = [];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result).toBeUndefined();
+  });
+
+  it("should return undefined when no subtitle preferences are desired", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "existing-user",
+        password: "password",
+        policy: { isAdministrator: true },
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result).toBeUndefined();
+  });
+
+  it("should return configurations to update when subtitle preferences change", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "existing-user",
+        password: "password",
+        subtitleLanguagePreference: "heb",
+        subtitleMode: "Always",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result?.size).toBe(1);
+    expect(result?.get("user-1-id")).toEqual({
+      DisplayMissingEpisodes: false,
+      RememberSubtitleSelections: true,
+      SubtitleLanguagePreference: "heb",
+      SubtitleMode: "Always",
+    });
+  });
+
+  it("should keep configuration fields the user config does not manage", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "existing-user",
+        password: "password",
+        subtitleLanguagePreference: "heb",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result?.get("user-1-id")?.DisplayMissingEpisodes).toBe(false);
+    expect(result?.get("user-1-id")?.RememberSubtitleSelections).toBe(true);
+  });
+
+  it("should return undefined when subtitle language preference is unchanged", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "admin-user",
+        password: "password",
+        subtitleLanguagePreference: "eng",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result).toBeUndefined();
+  });
+
+  it("should handle users without Id gracefully", () => {
+    // Arrange
+    const usersWithoutId: UserDtoSchema[] = [
+      {
+        Name: "existing-user",
+        ServerId: "server-id",
+      } as UserDtoSchema,
+    ];
+    const config: UserConfigList = [
+      {
+        name: "existing-user",
+        password: "password",
+        subtitleLanguagePreference: "heb",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(usersWithoutId, config);
+
+    // Assert
+    expect(result).toBeUndefined();
+  });
+
+  it("should handle users that are not in the current user list", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "non-existent-user",
+        password: "password",
+        subtitleMode: "Always",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result).toBeUndefined();
+  });
+
+  it("should return configurations for multiple users", () => {
+    // Arrange
+    const config: UserConfigList = [
+      {
+        name: "existing-user",
+        password: "password",
+        subtitleLanguagePreference: "heb",
+      },
+      {
+        name: "admin-user",
+        password: "password",
+        subtitleMode: "Always",
+      },
+    ];
+
+    // Act
+    const result: Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, config);
+
+    // Assert
+    expect(result?.size).toBe(2);
+    expect(result?.has("user-1-id")).toBe(true);
+    expect(result?.has("user-2-id")).toBe(true);
+  });
+});
+
+describe("applyUserConfigurations", () => {
+  let mockClient: JellyfinClient;
+  let updateConfigurationSpy: Mock;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    updateConfigurationSpy = vi.fn();
+    mockClient = {
+      updateUserConfiguration: updateConfigurationSpy,
+    } as unknown as JellyfinClient;
+  });
+
+  it("should do nothing when configurationsToUpdate is undefined", async () => {
+    // Act
+    await applyUserConfigurations(mockClient, undefined);
+
+    // Assert
+    expect(updateConfigurationSpy).not.toHaveBeenCalled();
+  });
+
+  it("should call client.updateUserConfiguration for single user", async () => {
+    // Arrange
+    const configurations: Map<string, UserConfigurationSchema> = new Map([
+      [
+        "user-1-id",
+        {
+          SubtitleLanguagePreference: "heb",
+          SubtitleMode: "Always",
+        } as UserConfigurationSchema,
+      ],
+    ]);
+
+    updateConfigurationSpy.mockResolvedValue(undefined);
+
+    // Act
+    await applyUserConfigurations(mockClient, configurations);
+
+    // Assert
+    expect(updateConfigurationSpy).toHaveBeenCalledTimes(1);
+    expect(updateConfigurationSpy).toHaveBeenCalledWith("user-1-id", {
+      SubtitleLanguagePreference: "heb",
+      SubtitleMode: "Always",
+    });
+  });
+
+  it("should call client.updateUserConfiguration for multiple users", async () => {
+    // Arrange
+    const configurations: Map<string, UserConfigurationSchema> = new Map([
+      [
+        "user-1-id",
+        { SubtitleLanguagePreference: "heb" } as UserConfigurationSchema,
+      ],
+      ["user-2-id", { SubtitleMode: "Smart" } as UserConfigurationSchema],
+    ]);
+
+    updateConfigurationSpy.mockResolvedValue(undefined);
+
+    // Act
+    await applyUserConfigurations(mockClient, configurations);
+
+    // Assert
+    expect(updateConfigurationSpy).toHaveBeenCalledTimes(2);
+    expect(updateConfigurationSpy).toHaveBeenCalledWith("user-1-id", {
+      SubtitleLanguagePreference: "heb",
+    });
+    expect(updateConfigurationSpy).toHaveBeenCalledWith("user-2-id", {
+      SubtitleMode: "Smart",
+    });
+  });
+
+  it("should handle empty configurations map", async () => {
+    // Arrange
+    const configurations: Map<string, UserConfigurationSchema> = new Map();
+
+    // Act
+    await applyUserConfigurations(mockClient, configurations);
+
+    // Assert
+    expect(updateConfigurationSpy).not.toHaveBeenCalled();
   });
 });

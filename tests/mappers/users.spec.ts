@@ -6,6 +6,7 @@ import {
   getPassword,
   mapUserConfigToCreateSchema,
   mapUserPolicyConfigToSchema,
+  mapUserConfigToConfiguration,
 } from "../../src/mappers/users";
 import {
   type UserConfig,
@@ -14,6 +15,7 @@ import {
 import {
   type CreateUserByNameSchema,
   type UserPolicySchema,
+  type UserConfigurationSchema,
 } from "../../src/types/schema/users";
 
 describe("mappers/users", () => {
@@ -361,6 +363,82 @@ describe("mappers/users", () => {
       expect(result).toEqual({
         LoginAttemptsBeforeLockout: 0,
       });
+    });
+  });
+
+  describe("mapUserConfigToConfiguration", () => {
+    it("should map subtitle preferences to schema", () => {
+      // Arrange
+      const config: UserConfig = {
+        name: "test-user",
+        password: "password",
+        subtitleLanguagePreference: "heb",
+        subtitleMode: "Always",
+      };
+
+      // Act
+      const result: Partial<UserConfigurationSchema> =
+        mapUserConfigToConfiguration(config);
+
+      // Assert
+      expect(result).toEqual({
+        SubtitleLanguagePreference: "heb",
+        SubtitleMode: "Always",
+      });
+    });
+
+    it("should map individual subtitle preference fields", () => {
+      // Arrange
+      const testCases: Array<{
+        config: UserConfig;
+        expected: Partial<UserConfigurationSchema>;
+      }> = [
+        {
+          config: {
+            name: "test-user",
+            password: "password",
+            subtitleLanguagePreference: "heb",
+          },
+          expected: { SubtitleLanguagePreference: "heb" },
+        },
+        {
+          config: {
+            name: "test-user",
+            password: "password",
+            subtitleMode: "Smart",
+          },
+          expected: { SubtitleMode: "Smart" },
+        },
+      ];
+
+      testCases.forEach(
+        (testCase: {
+          config: UserConfig;
+          expected: Partial<UserConfigurationSchema>;
+        }) => {
+          // Act
+          const result: Partial<UserConfigurationSchema> =
+            mapUserConfigToConfiguration(testCase.config);
+
+          // Assert
+          expect(result).toEqual(testCase.expected);
+        },
+      );
+    });
+
+    it("should return empty object when no subtitle preferences provided", () => {
+      // Arrange
+      const config: UserConfig = {
+        name: "test-user",
+        password: "password",
+      };
+
+      // Act
+      const result: Partial<UserConfigurationSchema> =
+        mapUserConfigToConfiguration(config);
+
+      // Assert
+      expect(result).toEqual({});
     });
   });
 });
