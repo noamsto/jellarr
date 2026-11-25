@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   types = import ./types {inherit lib;};
@@ -83,6 +84,16 @@ in {
       default = "jellarr";
       description = "Group for the jellarr service.";
       type = lib.types.str;
+    };
+
+    package = lib.mkOption {
+      default = pkgs.callPackage ../package.nix {};
+      defaultText = lib.literalMD ''
+        jellarr built with the flake's own nixpkgs when imported as
+        `nixosModules.default`; with the host's `pkgs` otherwise
+      '';
+      description = "The jellarr package to run.";
+      type = lib.types.package;
     };
 
     schedule = lib.mkOption {
