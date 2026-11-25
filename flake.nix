@@ -25,7 +25,17 @@
       ];
 
       flake = {
-        nixosModules.default = ./nix/module;
+        # Defaults to this flake's own build so the fixed-output pnpmDeps hash
+        # tracks this flake's lock, not the host's nixpkgs.
+        nixosModules.default = {
+          lib,
+          pkgs,
+          ...
+        }: {
+          imports = [./nix/module];
+          services.jellarr.package =
+            lib.mkDefault inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        };
       };
 
       perSystem = {system, ...}: let
