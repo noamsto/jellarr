@@ -71,8 +71,7 @@ export async function runPipeline(path: string): Promise<void> {
     await jellyfinClient.getSystemConfiguration();
 
   const updatedServerConfigurationSchema:
-    | ServerConfigurationSchema
-    | undefined = calculateSystemDiff(
+    ServerConfigurationSchema | undefined = calculateSystemDiff(
     currentServerConfigurationSchema,
     cfg.system,
   );
@@ -159,8 +158,8 @@ export async function runPipeline(path: string): Promise<void> {
     }
 
     const userConfigurationsToUpdate:
-      | Map<string, UserConfigurationSchema>
-      | undefined = calculateUserConfigurationsDiff(currentUsers, cfg.users);
+      Map<string, UserConfigurationSchema> | undefined =
+      calculateUserConfigurationsDiff(currentUsers, cfg.users);
 
     if (userConfigurationsToUpdate) {
       console.log("→ updating user configurations");
@@ -188,14 +187,14 @@ export async function runPipeline(path: string): Promise<void> {
     }
 
     const pluginConfigurationsToUpdate:
-      | Map<string, BasePluginConfigurationSchema>
-      | undefined = calculatePluginConfigurationsDiff(
-      await getPluginConfigurationSchemaByName(
-        jellyfinClient,
-        installedPlugins,
-      ),
-      cfg.plugins,
-    );
+      Map<string, BasePluginConfigurationSchema> | undefined =
+      calculatePluginConfigurationsDiff(
+        await getPluginConfigurationSchemaByName(
+          jellyfinClient,
+          installedPlugins,
+        ),
+        cfg.plugins,
+      );
 
     if (pluginConfigurationsToUpdate) {
       console.log("→ updating plugin configurations");
